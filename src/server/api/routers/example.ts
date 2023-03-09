@@ -18,6 +18,19 @@ export const exampleRouter = createTRPCRouter({
   getAll: publicProcedure.query(({ ctx }) => {
     return ctx.prisma.example.findMany();
   }),
+  add: publicProcedure
+    .input(
+      z.object({
+        id: z.string().optional(),
+        text: z.string().min(1),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const todo = await ctx.prisma.example.create({
+        data: input,
+      });
+      return todo;
+    }),
 
   getSecretMessage: protectedProcedure.query(() => {
     return "you can now see this secret message!";
