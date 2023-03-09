@@ -4,6 +4,7 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import { useState } from "react";
 import "tailwindcss/tailwind.css";
 import { AppRouter } from "~/server/api/root";
+import Link from "next/link";
 
 import { api } from "~/utils/api";
 
@@ -26,29 +27,71 @@ function TodoList({ items }: { items: Task }) {
     },
   });
 
+  const editTask = api.task.edit.useMutation({
+    async onMutate({ id, data }) {
+      await utils.task.all.cancel();
+      const allTasks = utils.task.all.getData();
+      if (!allTasks) {
+        return;
+      }
+      utils.task.all.setData(
+        undefined,
+        allTasks.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                ...data,
+              }
+            : t
+        )
+      );
+    },
+  });
+
   return (
-    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-1 md:grid-cols-1">
+    <ul className="mt-4 mb-20 grid grid-cols-1 gap-4 sm:grid-cols-1 md:grid-cols-1">
       {items.map((item) => (
         <li
           key={item.id}
-          className="flex cursor-pointer flex-col overflow-hidden rounded-lg shadow-lg"
+          className={`${
+            item.complete ? "bg-teal-100" : "bg-white"
+          } flex flex-col overflow-hidden rounded-lg shadow-lg`}
         >
-          <div className="grid grid-cols-4 items-center justify-between gap-4 bg-white p-6 sm:grid-cols-4 md:grid-cols-4">
+          <div className="grid grid-cols-5 items-center justify-between gap-4 p-6 sm:grid-cols-5 md:grid-cols-5">
             <div className="col-span-3">
-              <a href="#" className="mt-2 block">
+              <div className="mt-2 block">
                 <p className="overflow-hidden text-ellipsis text-xl font-semibold text-gray-900">
                   {item.title}
                 </p>
                 {/* <p className="mt-3 text-base text-gray-500">
                   {item.description}
                 </p> */}
-              </a>
+              </div>
             </div>
-            <div className="sitems-center col-span-1">
-              <div className="">
+            <div className="col-span-2">
+              <div className="flex items-center justify-center">
+                <Link
+                  href={`/task/${item.id}`}
+                  as={`/task/${item.id}`}
+                  className="mr-1 whitespace-nowrap rounded bg-gray-400 py-2 px-4 text-xs text-white hover:bg-gray-600"
+                >
+                  Details
+                </Link>
+                {!item.complete && (
+                  <button
+                    onClick={() => {
+                      editTask.mutate({
+                        id: item.id,
+                        data: { complete: true },
+                      });
+                    }}
+                    className="mr-1 whitespace-nowrap rounded bg-green-800 py-2 px-4 text-xs text-white hover:bg-green-600"
+                  >
+                    Mark as done
+                  </button>
+                )}
                 <button
                   onClick={() => {
-                    console.log("1", item.id);
                     deleteTask.mutate(item.id);
                   }}
                   className="float-right text-red-500 hover:text-red-700"
@@ -108,7 +151,7 @@ export default function Todo() {
 
   const [newTodo, setNewTodo] = useState("");
   return (
-    <div>
+    <div className="px-8">
       <h1 className="py-4 text-center text-4xl font-bold text-gray-800">
         Welcome to the to do list
       </h1>
